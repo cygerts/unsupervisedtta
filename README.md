@@ -1,10 +1,24 @@
+This repository provides code and benchmarks for evaluating Test-Time Adaptation (TTA) algorithms under realistic conditions, including unsupervised hyperparameter selection.
+
+
+## Citation
+```bibtex
+@inproceedings{cygert2026realistic,
+  author    = {Sebastian Cygert and Damian S{\'o}jka and Tomasz Trzci{\'n}ski and Bart{\l}omiej Twardowski},
+  title     = {Realistic Evaluation of Test-Time Adaptation Algorithms: Unsupervised Hyperparameter Selection},
+  booktitle = {Proceedings of the 21st International Conference on Computer Vision Theory and Applications (VISAPP)},
+  year      = {2026},
+  address   = {Marbella, Spain},
+}
+```
+
 ## Prerequisites
 To use the repository, we provide a conda environment.
 ```bash
 conda update conda
 conda env create -f environment.yml
-conda activate tta 
-```
+conda activate tta
+``` 
 
 ## Classification
 This repository contains an extensive collection of different methods, datasets and settings,
