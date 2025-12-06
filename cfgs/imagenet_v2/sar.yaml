@@ -1,0 +1,16 @@
+CORRUPTION:
+  DATASET: imagenet_v2
+  SEVERITY:
+    - ""
+  TYPE:
+    - ""
+MODEL:
+  ADAPTATION: sar
+  ARCH: resnet50
+OPTIM:
+  LR: 0.00025
+  METHOD: SGD
+  STEPS: 1
+  WD: 0.0
+TEST:
+  BATCH_SIZE: 10

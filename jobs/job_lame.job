@@ -1,0 +1,75 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=lame_imagentr_bs
+#SBATCH --gpus=1
+#SBATCH --time=48:00:00
+#SBATCH --account=plgttaautopilot-gpu-a100
+#SBATCH --partition=plgrid-gpu-a100
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=8G
+#SBATCH --gres=gpu
+#SBATCH -e slurm/slurm.%N.%j.err # STDERR
+#SBATCH -o slurm/slurm.%N.%j.out # STDOUT
+
+module load Miniconda3/4.9.2
+conda activate /net/people/plgrid/plgseb/storage/venv/tta
+
+method=lame       # choose from: source, norm_test, tent, eata, sar, cotta, rotta, adacontrast, lame, gtta, rmt,  roi
+setting=continual # choose from: continual, mixed_domains, correlated, mixed_domains_correlated
+seeds=(1 2 3)         # to reproduce the benchmark results, use: (1 2 3 4 5)
+options=()        # for RMT source-free without warm-up use: options=("RMT.LAMBDA_CE_SRC 0.0 RMT.NUM_SAMPLES_WARM_UP 0")
+
+cifar100=("cfgs/cifar100_c/${method}.yaml")
+cifar10_1=("cfgs/cifar10_1/${method}.yaml")
+imagenet_c=("cfgs/imagenet_c/${method}.yaml")
+imagenet_a=("cfgs/imagenet_a/${method}.yaml")
+imagenet_r=("cfgs/imagenet_others/${method}.yaml")
+imagenet_v2=("cfgs/imagenet_v2/${method}.yaml")
+domain=("cfgs/domainnet126/${method}.yaml")
+imagenet_r64=("cfgs/imagenet_others_bs64/${method}.yaml")
+domain64=("cfgs/domainnet126_bs64/${method}.yaml")
+
+# ---continual---
+if [[ $setting = "continual" ]]
+then
+  #for var in "${cifar100[@]}"; do
+  for var in "${imagenet_r[@]}"; do
+  #for var in "${imagenet_a[@]}"; do
+    for seed in ${seeds[*]}; do
+      #for lr in ${lrs[*]}; do
+        #for mom in ${momentums[*]}; do
+          if (( $(echo "$mom > 0.0" | bc -l) )); then
+            nest=True
+          else
+            nest=False
+          fi
+          python test_time.py --cfg $var SETTING $setting RNG_SEED $seed TEST.BATCH_SIZE 32
+          python test_time.py --cfg $var SETTING $setting RNG_SEED $seed TEST.BATCH_SIZE 64
+          python test_time.py --cfg $var SETTING $setting RNG_SEED $seed TEST.BATCH_SIZE 128
+        #done
+      #done
+    done
+  done
+fi
+
+exit 0
+
+if [[ $setting = "continual" ]]
+then
+  #for var in "${cifar100[@]}"; do
+  for var in "${domain64[@]}"; do
+    for seed in ${seeds[*]}; do
+      #for lr in ${lrs[*]}; do
+        #for mom in ${momentums[*]}; do
+          if (( $(echo "$mom > 0.0" | bc -l) )); then
+            nest=True
+          else
+            nest=False
+          fi
+          python test_time.py --cfg $var SETTING $setting RNG_SEED $seed
+        #done
+      #done
+    done
+  done
+fi
+

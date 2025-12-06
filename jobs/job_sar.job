@@ -1,0 +1,165 @@
+#!/bin/bash -l
+
+#SBATCH --job-name=sar_iagenet_v2
+#SBATCH --gpus=1
+#SBATCH --time=48:00:00
+#SBATCH --account=plgttaautopilot-gpu-a100
+#SBATCH --partition=plgrid-gpu-a100
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=8G
+#SBATCH --gres=gpu
+#SBATCH -e slurm/slurm.%N.%j.err # STDERR
+#SBATCH -o slurm/slurm.%N.%j.out # STDOUT
+
+module load Miniconda3/4.9.2
+conda activate /net/people/plgrid/plgseb/storage/venv/tta
+
+method=sar       # choose from: source, norm_test, tent, eata, sar, cotta, rotta, adacontrast, lame, gtta, rmt,  roid
+setting=continual # choose from: continual, mixed_domains, correlated, mixed_domains_correlated
+seeds=(3)         # to reproduce the benchmark results, use: (1 2 3 4 5)
+options=()        # for RMT source-free without warm-up use: options=("RMT.LAMBDA_CE_SRC 0.0 RMT.NUM_SAMPLES_WARM_UP 0")
+
+cifar10=("cfgs/cifar10_c/${method}.yaml")
+cifar10_1=("cfgs/cifar10_1/${method}.yaml")
+cifar100=("cfgs/cifar100_c/${method}.yaml")
+imagenet_c=("cfgs/imagenet_c/${method}.yaml")
+imagenet_a=("cfgs/imagenet_a/${method}.yaml")
+imagenet_r=("cfgs/imagenet_others/${method}.yaml")
+imagenet_v2=("cfgs/imagenet_v2/${method}.yaml")
+domain=("cfgs/domainnet126/${method}.yaml")
+imagenet_r64=("cfgs/imagenet_others_bs64/${method}.yaml")
+domain64=("cfgs/domainnet126_bs64/${method}.yaml")
+
+lrs=(0.001 0.00025 0.0000625 0.0000156)
+momentums=(0.9 0.0)
+resets=(0.2)
+e0s=(0.4)
+steps=(1)
+eresets=(0.01 0.05 0.5)
+ee0s=(0.1 0.8)
+
+# ---continual---
+if [[ $setting = "continual" ]]
+then
+  for var in "${imagenet_v2[@]}"; do
+  #for var in "${cifar100[@]}"; do
+    for seed in ${seeds[*]}; do
+      seedbash=23*$seed
+      for step in ${steps[*]}; do
+        for mom in ${momentums[*]}; do
+          for lr in ${lrs[*]}; do
+            for rst in ${resets[*]}; do
+              for e0 in ${e0s[*]}; do
+                if (( $(echo "$mom > 0.0" | bc -l) )); then
+                  nest=True
+                else
+                  nest=False
+                fi
+                erst="${eresets[RANDOM=$seedbash % ${#eresets[@]}]}"
+                seedbash+=1
+                ee0="${ee0s[RANDOM=$seedbash % ${#ee0s[@]}]}"
+                seedbash+=1
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $erst SAR.E0_MULT $ee0 OPTIM.STEPS $step TEST.BATCH_SIZE 10
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $rst SAR.E0_MULT $e0 OPTIM.STEPS $step TEST.BATCH_SIZE 10
+              done
+	          done
+          done
+        done
+      done
+    done
+  done
+fi
+
+exit 0
+
+if [[ $setting = "continual" ]]
+then
+  for var in "${domain64[@]}"; do
+    for seed in ${seeds[*]}; do
+      seedbash=23*$seed
+      for step in ${steps[*]}; do
+        for mom in ${momentums[*]}; do
+          for lr in ${lrs[*]}; do
+            for rst in ${resets[*]}; do
+              for e0 in ${e0s[*]}; do
+                if (( $(echo "$mom > 0.0" | bc -l) )); then
+                  nest=True
+                else
+                  nest=False
+                fi
+                erst="${eresets[RANDOM=$seedbash % ${#eresets[@]}]}"
+                seedbash+=1
+                ee0="${ee0s[RANDOM=$seedbash % ${#ee0s[@]}]}"
+                seedbash+=1
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $erst SAR.E0_MULT $ee0 OPTIM.STEPS $step
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $rst SAR.E0_MULT $e0 OPTIM.STEPS $step
+              done
+	          done
+          done
+        done
+      done
+    done
+  done
+fi
+
+exit 0
+
+if [[ $setting = "continual" ]]
+then
+  for var in "${domain[@]}"; do
+    for seed in ${seeds[*]}; do
+      seedbash=23*$seed
+      for step in ${steps[*]}; do
+        for mom in ${momentums[*]}; do
+          for lr in ${lrs[*]}; do
+            for rst in ${resets[*]}; do
+              for e0 in ${e0s[*]}; do
+                if (( $(echo "$mom > 0.0" | bc -l) )); then
+                  nest=True
+                else
+                  nest=False
+                fi
+                erst="${eresets[RANDOM=$seedbash % ${#eresets[@]}]}"
+                seedbash+=1
+                ee0="${ee0s[RANDOM=$seedbash % ${#ee0s[@]}]}"
+                seedbash+=1
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $rst SAR.E0_MULT $e0 OPTIM.STEPS $step
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $erst SAR.E0_MULT $ee0 OPTIM.STEPS $step
+              done
+	          done
+          done
+        done
+      done
+    done
+  done
+fi
+
+if [[ $setting = "continual" ]]
+then
+  for var in "${imagenet_r[@]}"; do
+    for seed in ${seeds[*]}; do
+      seedbash=23*$seed
+      for step in ${steps[*]}; do
+        for mom in ${momentums[*]}; do
+          for lr in ${lrs[*]}; do
+            for rst in ${resets[*]}; do
+              for e0 in ${e0s[*]}; do
+                if (( $(echo "$mom > 0.0" | bc -l) )); then
+                  nest=True
+                else
+                  nest=False
+                fi
+                erst="${eresets[RANDOM=$seedbash % ${#eresets[@]}]}"
+                seedbash+=1
+                ee0="${ee0s[RANDOM=$seedbash % ${#ee0s[@]}]}"
+                seedbash+=1
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $erst SAR.E0_MULT $ee0 OPTIM.STEPS $step
+                python test_time.py --cfg $var SETTING $setting RNG_SEED $seed $options OPTIM.LR $lr OPTIM.MOMENTUM $mom OPTIM.NESTEROV $nest SAR.RESET_CONSTANT_EM $rst SAR.E0_MULT $e0 OPTIM.STEPS $step
+              done
+	          done
+          done
+        done
+      done
+    done
+  done
+fi
